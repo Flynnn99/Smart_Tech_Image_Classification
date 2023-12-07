@@ -66,15 +66,14 @@ def show_images(images, labels, class_names, num_images=5):
 def plot_class_representations(images, labels, class_names, samples_per_class=5):
     num_classes = len(class_names)
     fig, axes = plt.subplots(nrows=num_classes, ncols=samples_per_class, figsize=(15, 2 * num_classes))
-    
-    for class_idx in range(num_classes):
-        idxs = np.where(labels == class_idx)[0][:samples_per_class]
-        for plot_idx, img_idx in enumerate(idxs):
-            ax = axes[class_idx, plot_idx] if samples_per_class > 1 else axes[plot_idx]
-            ax.imshow(images[img_idx])
-            ax.set_title(f'{class_idx}-{class_names[class_idx]}')
+    fig.tight_layout()
+    for class_idx in range(num_classes): 
+        idxs = np.where(labels == class_idx)[0][:samples_per_class] 
+        for plot_idx, img_idx in enumerate(idxs): #img
+            ax = axes[class_idx, plot_idx] if samples_per_class > 1 else axes[plot_idx] 
+            ax.imshow(images[img_idx], cmap=plt.get_cmap('gray')) 
             ax.axis('off')
-    plt.tight_layout()
+           # ax.set_title(f'{class_idx}-{class_names[class_idx]}')        
     plt.show()
 
 def plot_distribution(labels, title='Distribution of the training set', xlabel='Class Number', ylabel='Number of images'):
@@ -92,12 +91,18 @@ def plot_distribution(labels, title='Distribution of the training set', xlabel='
 
 
 def main():
-    cifar10_data = unpickle('cifar-10-batches-py/data_batch_1')
-    cifar100_data = unpickle('cifar-100-python/train')
+    
+    cifar101_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_1')
+    cifar102_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_2')
+    cifar103_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_3')
+    cifar104_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_4')
+    cifar100_data = unpickle('cifar_files/cifar-100-python/train')
+
+
 
     # Load label names from metadata files
-    cifar10_meta = unpickle('cifar-10-batches-py/batches.meta')
-    cifar100_meta = unpickle('cifar-100-python/meta')
+    cifar10_meta = unpickle('cifar_files/cifar-10-batches-py/batches.meta')
+    cifar100_meta = unpickle('cifar_files/cifar-100-python/meta')
 
     # Extract label names
     cifar10_label_names = [t.decode('utf8') for t in cifar10_meta[b'label_names']]
@@ -127,22 +132,30 @@ def main():
     cifar100_relevant_labels = [combined_class_mapping[name] for name in cifar100_label_names if name in combined_class_mapping]
 
     # Extract relevant data
-    cifar10_images, cifar10_labels = extract_relevant_data(cifar10_data, cifar10_relevant_labels)
+    cifar101_images, cifar101_labels = extract_relevant_data(cifar101_data, cifar10_relevant_labels)
+    cifar102_images, cifar102_labels = extract_relevant_data(cifar102_data, cifar10_relevant_labels)
+    cifar103_images, cifar103_labels = extract_relevant_data(cifar103_data, cifar10_relevant_labels)
+    cifar104_images, cifar104_labels = extract_relevant_data(cifar104_data, cifar10_relevant_labels)
+
     cifar100_images, cifar100_labels = extract_relevant_data(cifar100_data, cifar100_relevant_labels)
 
     # Preprocess data
-    cifar10_images, cifar10_labels = preprocess_data(cifar10_images, cifar10_labels, len(combined_class_mapping))
+    cifar101_images, cifar101_labels = preprocess_data(cifar101_images, cifar101_labels, len(combined_class_mapping))
+    cifar102_images, cifar102_labels = preprocess_data(cifar102_images, cifar102_labels, len(combined_class_mapping))
+    cifar103_images, cifar103_labels = preprocess_data(cifar103_images, cifar103_labels, len(combined_class_mapping))
+    cifar104_images, cifar104_labels = preprocess_data(cifar104_images, cifar104_labels, len(combined_class_mapping))
+    
     cifar100_images, cifar100_labels = preprocess_data(cifar100_images, cifar100_labels, len(combined_class_mapping))
 
     # Combine datasets
-    combined_images = np.concatenate([cifar10_images, cifar100_images])
-    combined_labels = np.concatenate([cifar10_labels, cifar100_labels])
+    combined_images = np.concatenate([cifar101_images, cifar102_images, cifar103_images, cifar104_images, cifar100_images])
+    combined_labels = np.concatenate([cifar101_labels, cifar102_labels, cifar103_labels, cifar104_labels, cifar100_labels])
 
      # Data Exploration
     print("Size of each image: 32x32 pixels")
     
     # Count the number of images in each class before preprocessing
-    cifar10_label_counts = {label: cifar10_data[b'labels'].count(label) for label in cifar10_relevant_labels}
+    cifar10_label_counts = {label: cifar101_data[b'labels'].count(label) for label in cifar10_relevant_labels}
     cifar100_label_counts = {label: cifar100_data[b'fine_labels'].count(label) for label in cifar100_relevant_labels}
 
     print("Number of images per class in CIFAR-10 before preprocessing:", cifar10_label_counts)
@@ -172,15 +185,6 @@ def main():
     print("Training set shape:", X_train.shape, y_train.shape)
     print("Validation set shape:", X_val.shape, y_val.shape)
     print("Test set shape:", X_test.shape, y_test.shape)
-
-    
-
-
-
-
-    return 1
-
-
 
 if __name__ == '__main__':
     main()

@@ -25,6 +25,7 @@ x_test = np.concatenate((x_test_10[np.isin(y_test_10, cifar10_classes).flatten()
                          x_test_100[np.isin(y_test_100, cifar100_classes).flatten()]))
 y_test = np.concatenate((y_test_10[np.isin(y_test_10, cifar10_classes).flatten()], 
                          y_test_100[np.isin(y_test_100, cifar100_classes).flatten()]))
+
 # Convert the labels from 2D to 1D
 y_train = y_train.flatten()
 y_test = y_test.flatten()
