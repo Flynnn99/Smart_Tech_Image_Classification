@@ -1,86 +1,115 @@
-from tensorflow.keras.datasets import cifar10, cifar100
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
-import matplotlib.pyplot as plt
+import pickle
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
+import random
+import keras
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
+from keras.optimizers import Adam
+from keras.utils import to_categorical
+from keras.layers import Conv2D, MaxPooling2D
+import pandas as pd
 import cv2
+import requests
+from PIL import Image
+from keras.preprocessing.image import ImageDataGenerator
+import os
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from imgaug import augmenters as iaa
 
 
-# Load CIFAR-10 and CIFAR-100 data
-(x_train_10, y_train_10), (x_test_10, y_test_10) = cifar10.load_data()
-(x_train_100, y_train_100), (x_test_100, y_test_100) = cifar100.load_data(label_mode='fine')
-
-# Define the classes of interest for CIFAR-10 and CIFAR-100
+def unpickle(file):
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
 
 cifar10_classes = [1, 2, 3, 4, 5, 7]  # classes from CIFAR-10
 cifar100_classes = [11, 34, 35, 36, 46, 98, 2, 31, 33, 42, 72, 78, 95, 97]  # classes from CIFAR-100
 
-# Filter out the classes from CIFAR-10 and CIFAR-100
-x_train = np.concatenate((x_train_10[np.isin(y_train_10, cifar10_classes).flatten()], 
-                          x_train_100[np.isin(y_train_100, cifar100_classes).flatten()]))
-y_train = np.concatenate((y_train_10[np.isin(y_train_10, cifar10_classes).flatten()], 
-                          y_train_100[np.isin(y_train_100, cifar100_classes).flatten()]))
-x_test = np.concatenate((x_test_10[np.isin(y_test_10, cifar10_classes).flatten()], 
-                         x_test_100[np.isin(y_test_100, cifar100_classes).flatten()]))
-y_test = np.concatenate((y_test_10[np.isin(y_test_10, cifar10_classes).flatten()], 
-                         y_test_100[np.isin(y_test_100, cifar100_classes).flatten()]))
 
-# Convert the labels from 2D to 1D
-y_train = y_train.flatten()
-y_test = y_test.flatten()
+#unpickle the data
+cifar101_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_1')
+cifar102_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_2')
+cifar103_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_3')
+cifar104_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_4')
+cifar10_meta = unpickle('cifar_files/cifar-10-batches-py/batches.meta')
 
-# Shuffle the data
-shuffle_train = np.random.permutation(len(x_train))
-shuffle_test = np.random.permutation(len(x_test))
-x_train = x_train[shuffle_train]
-y_train = y_train[shuffle_train]
-x_test = x_test[shuffle_test]
-y_test = y_test[shuffle_test]
+combine_cifar10_data = np.concatenate((cifar101_data[b'data'], cifar102_data[b'data'], cifar103_data[b'data'], cifar104_data[b'data']), axis=0)
+#add labels to the data
+combine_cifar10_data = np.concatenate((combine_cifar10_data, np.concatenate((cifar101_data[b'labels'], cifar102_data[b'labels'],cifar103_data[b'labels'], cifar104_data[b'labels']), axis=0)), axis=1)
 
-print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
+cifar100_data = unpickle('cifar_files/cifar-100-python/train')
+cifar100_test = unpickle('cifar_files/cifar-100-python/test')
+cifar100_meta = unpickle('cifar_files/cifar-100-python/meta')
 
-# Visualize the data
-plt.figure(figsize=(10, 10))
-for i in range(25):
-    plt.subplot(5, 5, i+1)
-    plt.imshow(x_train[i])
-    plt.xlabel(y_train[i])
-plt.show()
-
-# Resize the images to 32x32x3
-x_train = np.array([cv2.resize(img, (32, 32)) for img in x_train])
-x_test = np.array([cv2.resize(img, (32, 32)) for img in x_test])
-
-# Visualize the data
-plt.figure(figsize=(10, 10))
-for i in range(25):
-    plt.subplot(5, 5, i+1)
-    plt.imshow(x_train[i])
-    plt.xlabel(y_train[i])
-plt.show()
-
-# Split the data into training and testing
-x_train = x_train[:10000]
-y_train = y_train[:10000]
-x_test = x_test[:2000]
-y_test = y_test[:2000]
+for item in combine_cifar10_data:
+    print(item, type(combine_cifar10_data[item]))
 
 
-print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
+def greyscale(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return img
+
+def equalize(img):
+    img = cv2.equalizeHist(img)
+    return img
+
+def preprocessing(img):
+    img = greyscale(img)
+    img = equalize(img)
+    img = img/255
+    return img
 
 
+#Image Augmentation
+def flip_random_image(image):
+  image = cv2.flip(image, 1)
+  return image
 
-# Normalize the data
-x_train = x_train / 255.0
-x_test = x_test / 255.0 
+def zoom(image):
+  zoom = iaa.Affine(scale = (1,1.3))
+  image = zoom.augment_image(image)
+  return image
 
-# One-hot encode the labels
-y_train = to_categorical(y_train)
-y_test = to_categorical(y_test)
+def pan(image):
+    pan = iaa.Affine(translate_percent = {"x" : (-0.1,0.1), "y" : (-0.1,0.1)})
+    image = pan.augment_image(image)
+    return image
+def img_bright(image):
+    brightness = iaa.Multiply((0.2,1.2))
+    image = brightness.augment_image(image)
+    return image
 
-print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
+def image_augment():
+    image = mpimg.imread(image)
+    if np.random.rand() < 0.5:
+        image = zoom(image)
+    if np.random.rand() < 0.5:
+        image = pan(image)
+    if np.random.rand() < 0.5:
+        image = img_bright(image)
+    if np.random.rand() < 0.5:
+        image = flip_random_image(image)
+    return image,
 
+
+def alpha_model():
+    model = Sequential()
+    model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Conv2D(30, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(Conv2D(30, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Flatten())
+    model.add(Dense(500, activation ='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))
+    model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
 
 
 
