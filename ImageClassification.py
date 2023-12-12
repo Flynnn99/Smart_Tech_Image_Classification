@@ -18,6 +18,8 @@ import cv2
 import requests
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
+from imgaug import augmenters as iaa # pip install imgaug
+
 
 
 # load CIFAR-10 data
@@ -105,6 +107,70 @@ for i in range(cols):
             axs[np.where(unique_classes == j)[0][0]][i].set_title(str(j))
 plt.show()
 
+#Image Preprocessing
+def greyscale(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return img
+
+def equalize(img):
+    img = cv2.equalizeHist(img)
+    return img
+
+def preprocessing(img):
+    img = greyscale(img)
+    img = equalize(img)
+    img = img/255
+    return img
+
 # Data Augmentation 
+def flip_random_image(image):
+  image = cv2.flip(image, 1)
+  return image
+
+def zoom(image):
+  zoom = iaa.Affine(scale = (1,1.3))
+  image = zoom.augment_image(image)
+  return image
+
+def pan(image):
+    pan = iaa.Affine(translate_percent = {"x" : (-0.1,0.1), "y" : (-0.1,0.1)})
+    image = pan.augment_image(image)
+    return image
+def img_bright(image):
+    brightness = iaa.Multiply((0.2,1.2))
+    image = brightness.augment_image(image)
+    return image
+
+def image_augment():
+    image = mpimg.imread(image)
+    if np.random.rand() < 0.5:
+        image = zoom(image)
+    if np.random.rand() < 0.5:
+        image = pan(image)
+    if np.random.rand() < 0.5:
+        image = img_bright(image)
+    if np.random.rand() < 0.5:
+        image = flip_random_image(image)
+    return image,
+
+#First Iteration of Our Model Based of the one we used in Class also used in the below article 
+#https://www.geeksforgeeks.org/image-classification-using-cifar-10-and-cifar-100-dataset-in-tensorflow/
+def alpha_model():
+    model = Sequential()
+    model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Conv2D(30, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(Conv2D(30, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Flatten())
+    model.add(Dense(500, activation ='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))
+    model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+model = alpha_model()
+history = model.fit(x_train_10, y_train_10, epochs=10, validation_data=(x_test_10, y_test_10))
 
 

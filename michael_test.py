@@ -1,11 +1,13 @@
 from tensorflow.keras.datasets import cifar10, cifar100
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import random
+import matplotlib.image as mpimg
 from imgaug import augmenters as iaa
 
 # Load CIFAR-10
@@ -121,7 +123,8 @@ def image_augment():
         image = flip_random_image(image)
     return image,
 
-
+#First Iteration of Our Model Based of the one we used in Class also used in the below article 
+#https://www.geeksforgeeks.org/image-classification-using-cifar-10-and-cifar-100-dataset-in-tensorflow/
 def alpha_model():
     model = Sequential()
     model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
@@ -136,4 +139,9 @@ def alpha_model():
     model.add(Dense(num_classes, activation='softmax'))
     model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
     return model
+
+model = alpha_model()
+history = model.fit(x_train_10, y_train_10, epochs=10, validation_data=(x_test_10, y_test_10))
+
+
 
