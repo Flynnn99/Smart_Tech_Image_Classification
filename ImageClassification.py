@@ -112,6 +112,21 @@ for i in range(cols):
 
 plt.show()
 
+# Visualize distribution of classes with labels
+plt.figure(figsize=(10, 5))
+plt.bar(range(len(num_classes)), num_of_samples)
+plt.title("Distribution of the training dataset")
+plt.xlabel("Class number")
+plt.ylabel("Number of images")
+plt.show()
+
+
+
+
+
+# Print unique classes x_train and y_train
+print(np.unique(y_train))
+
 #Image Preprocessing
 def greyscale(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -126,6 +141,19 @@ def preprocessing(img):
     img = equalize(img)
     img = img/255
     return img
+
+img = x_train[random.randint(0, len(x_train) - 1)]
+img = cv2.resize(img, (300, 300))
+cv2.imshow("Original", img)
+img = preprocessing(img)
+cv2.imshow("Preprocessing", img)
+cv2.waitKey(0)
+
+# Data Exploration
+
+
+
+
 
 # Data Augmentation 
 def flip_random_image(image):
