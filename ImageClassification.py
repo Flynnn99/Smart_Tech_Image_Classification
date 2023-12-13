@@ -32,7 +32,8 @@ class_names_cifar10 = [
     'airplane', 'automobile', 'bird', 'cat', 'deer',
     'dog', 'frog', 'horse', 'ship', 'truck'
 ]
-cifar_10_classes_needed = ['automobile', 'bird', 'cat, deer', 'dog', 'truck']
+
+cifar_10_classes_needed = ["automobile", "bird", "cat", "deer", "dog","horse", "truck"]
 # Create a dictionary mapping numerical labels to class names
 label_to_class_name = {i: class_names_cifar10[i] for i in range(len(class_names_cifar10))}
 # Apply the mapping to the training and testing labels
@@ -52,7 +53,7 @@ class_names = [
     'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale', 'willow_tree', 'wolf', 'woman', 'worm'
 ]
 
-classes_needed_cifar100 = ["cattle", "fox", "baby", "boy", "girl", "man", "woman", "rabbit", "squirrel", "maple", "oak", "palm", "pine", "willow", "bicycle", "bus", "motorcycle", "pickup truck", "train", "lawn-mower", "tractor"]
+classes_needed_cifar100 = ["cattle", "fox", "baby", "boy", "girl", "man", "woman", "rabbit", "squirrel", "maple_tree", "oak_tree", "palm_tree", "pine_tree", "willow_tree", "bicycle", "bus", "motorcycle", "pickup_truck", "train", "lawn_mower", "tractor"]
 
 # Create a dictionary mapping numerical labels to class names
 label_to_class_name = {i: class_names[i] for i in range(len(class_names))}
@@ -89,23 +90,27 @@ y_test = np.concatenate((y_test_10, y_test_100), axis=0)
 # Print the shape of the data After
 print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
 
-# Visualise the Classes
+print(set(y_train))  # This will show all unique classes in your training set
+
+# Visualize the Classes
 num_of_samples = []
 cols = 5
 num_classes = np.unique(y_train)
 fig, axs = plt.subplots(nrows=len(num_classes), ncols=cols, figsize=(5, 50))
 fig.tight_layout()
+
 for i in range(cols):
-    for j, row in num_classes.iterrows():
-        x_selected = x_train[y_train == j]
-        axs[j][i].imshow(x_selected[random.randint(0,len(x_selected)-1), :, :], cmap=plt.get_cmap('gray'))
-        axs[j][i].axis("off")
-        if i == 2:
-         num_of_samples.append(len(x_selected))
-         axs[j][i].set_title(str(j))
+    for j, label in enumerate(num_classes):
+        x_selected = x_train[y_train == label]
+        if len(x_selected) > 0:
+            img_index = random.randint(0, len(x_selected) - 1)
+            axs[j][i].imshow(x_selected[img_index, :, :], cmap=plt.get_cmap('gray'))
+            axs[j][i].axis("off")
+            if i == 2:
+                num_of_samples.append(len(x_selected))
+                axs[j][i].set_title(str(label))
+
 plt.show()
-
-
 
 #Image Preprocessing
 def greyscale(img):
@@ -153,22 +158,22 @@ def image_augment():
         image = flip_random_image(image)
     return image,
 
-#First Iteration of Our Model Based of the one we used in Class also used in the below article 
-#https://www.geeksforgeeks.org/image-classification-using-cifar-10-and-cifar-100-dataset-in-tensorflow/
-def alpha_model():
-    model = Sequential()
-    model.add(Conv2D(32, (3,3), input_shape=(32,32,3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(64, (3,3), input_shape=(32,32,3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Flatten())
-    model.add(Dense(500, activation ='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='softmax'))
-    model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
-    return model
+# #First Iteration of Our Model Based of the one we used in Class also used in the below article 
+# #https://www.geeksforgeeks.org/image-classification-using-cifar-10-and-cifar-100-dataset-in-tensorflow/
+# def alpha_model():
+#     model = Sequential()
+#     model.add(Conv2D(32, (3,3), input_shape=(32,32,3), activation='relu'))
+#     model.add(MaxPooling2D(pool_size=(2,2)))
+#     model.add(Conv2D(64, (3,3), input_shape=(32,32,3), activation='relu'))
+#     model.add(MaxPooling2D(pool_size=(2,2)))
+#     model.add(Flatten())
+#     model.add(Dense(500, activation ='relu'))
+#     model.add(Dropout(0.5))
+#     model.add(Dense(num_classes, activation='softmax'))
+#     model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+#     return model
 
-model = alpha_model()
-history = model.fit(x_train_10, y_train_10, epochs=10, validation_data=(x_test_10, y_test_10))
+# model = alpha_model()
+# history = model.fit(x_train_10, y_train_10, epochs=10, validation_data=(x_test_10, y_test_10))
 
 
