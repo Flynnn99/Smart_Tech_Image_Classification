@@ -1,4 +1,4 @@
-from keras.datasets import cifar10, cifar100
+from keras.datasets import cifar10, cifar100 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -92,20 +92,20 @@ print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
 # Visualise the Classes
 num_of_samples = []
 cols = 5
-unique_classes = np.unique(y_train)
-fig, axs = plt.subplots(nrows=len(unique_classes), ncols=cols, figsize=(5, 50))
+num_classes = np.unique(y_train)
+fig, axs = plt.subplots(nrows=len(num_classes), ncols=cols, figsize=(5, 50))
 fig.tight_layout()
 for i in range(cols):
-    for j in unique_classes:
+    for j, row in num_classes.iterrows():
         x_selected = x_train[y_train == j]
-        axs[np.where(unique_classes == j)[0][0]][i].imshow(
-            x_selected[random.randint(0, len(x_selected) - 1), :, :], cmap=plt.get_cmap("gray")
-        )
-        axs[np.where(unique_classes == j)[0][0]][i].axis("off")
+        axs[j][i].imshow(x_selected[random.randint(0,len(x_selected)-1), :, :], cmap=plt.get_cmap('gray'))
+        axs[j][i].axis("off")
         if i == 2:
-            num_of_samples.append(len(x_selected))
-            axs[np.where(unique_classes == j)[0][0]][i].set_title(str(j))
+         num_of_samples.append(len(x_selected))
+         axs[j][i].set_title(str(j))
 plt.show()
+
+
 
 #Image Preprocessing
 def greyscale(img):
@@ -157,11 +157,9 @@ def image_augment():
 #https://www.geeksforgeeks.org/image-classification-using-cifar-10-and-cifar-100-dataset-in-tensorflow/
 def alpha_model():
     model = Sequential()
-    model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
-    model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(Conv2D(32, (3,3), input_shape=(32,32,3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(30, (5,5), input_shape=(32,32,1), activation='relu'))
-    model.add(Conv2D(30, (5,5), input_shape=(32,32,1), activation='relu'))
+    model.add(Conv2D(64, (3,3), input_shape=(32,32,3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Flatten())
     model.add(Dense(500, activation ='relu'))
