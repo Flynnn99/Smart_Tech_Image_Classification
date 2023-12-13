@@ -20,7 +20,7 @@ def unpickle(file):
 
 classes_for_cifar_10 = ['automobile', 'bird', 'cat', 'deer', 'dog','horse','truck']
 classes_for_cifar_100 = ['cattle', 'fox', 'baby', 'boy', 'girl', 'man', 'woman', 'rabbit', 'squirrel',
-                         'maple_tree', 'oak_tree', 'palm_tree', 'pine_tree', 'willow_tree'
+                         'maple_tree','oak_tree', 'palm_tree', 'pine_tree', 'willow_tree'
                         'bicycle', 'bus', 'motorcycle', 'pickup_truck', 'train', 'lawn_mower' ,'tractor']
 
 def get_class_names(x_test, y_test, x_train, y_train, classes):
@@ -92,14 +92,11 @@ x_train2, y_train2, x_test2, y_test2 = get_class_names(x_train2, y_train2, x_tes
 print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
 
 
-# Visualise the Classes
-num_of_samples = []
-cols = 5
-num_classes = np.unique(y_train)
 
 #split the data
 x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
 
+print("before reshape")
 print(x_train.shape)
 print(x_val.shape)
 print(x_test.shape)
@@ -112,21 +109,54 @@ assert(x_val.shape[0] == y_val.shape[0]), "the number training images is differe
 assert(x_test.shape[0] == y_test.shape[0]), "the number training images is different from the number of labels"
 assert(x_train.shape[1:] == (32,32,3)), "Training image is not 32,32,3"
 
-
-print(x_train.shape)
+print("after reshape")
+print( x_train.shape)
 print(x_val.shape)
 print(x_test.shape)
 
 
 number_of_samples = []
 cols = 5
-num_classes = len(classes_for_cifar_10 + classes_for_cifar_100)
+#num_classes = np.unique(y_train)
+num_classes = 25
 
-plt.imshow(x_train[20])
-plt.xlabel(y_train[20])
-print(x_train[20].shape)
-print(y_train[20])
+
+#plot distrubution of the data
+def plot_distribution(y_train):
+    plt.figure(figsize=(15,15))
+    plt.hist(y_train, bins=num_classes)
+    plt.title("Distribution of the training data")
+    plt.xlabel("Class number")
+    plt.ylabel("Number of images")
+    plt.show()
+
+plot_distribution(y_train)
+
+
+plt.imshow(x_train[2000])
+plt.xlabel(y_train[2000])
+print(x_train[2000].shape)
+print(y_train[2000])
 plt.show()
 
+
+# #Preprocessing the Data
+# def preprocessing(img):
+#     resized_img = cv2.resize(img, (32,32))
+#     greyimg = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
+#     img = cv2.equalizeHist(greyimg)
+#     img = img/255
+#     return img
+
+
+
+# Preprocess the data
+x_train = np.array(list(map(preprocessing, x_train)))
+x_val = np.array(list(map(preprocessing, x_val)))
+x_test = np.array(list(map(preprocessing, x_test)))
+
+y_train = to_categorical(y_train, num_classes)
+y_test = to_categorical(y_test, num_classes)
+y_val = to_categorical(y_val, num_classes)
 
 
