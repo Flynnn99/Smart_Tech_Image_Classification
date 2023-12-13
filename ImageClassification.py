@@ -19,6 +19,15 @@ import requests
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 from imgaug import augmenters as iaa # pip install imgaug
+import os
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import random
+import matplotlib.image as mpimg
+from imgaug import augmenters as iaa
 
 
 
@@ -111,22 +120,6 @@ for i in range(cols):
                 axs[j][i].set_title(str(label))
 
 plt.show()
-
-# Visualize distribution of classes with labels
-plt.figure(figsize=(10, 5))
-plt.bar(range(len(num_classes)), num_of_samples)
-plt.title("Distribution of the training dataset")
-plt.xlabel("Class number")
-plt.ylabel("Number of images")
-plt.show()
-
-
-
-
-
-# Print unique classes x_train and y_train
-print(np.unique(y_train))
-
 #Image Preprocessing
 def greyscale(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -142,6 +135,8 @@ def preprocessing(img):
     img = img/255
     return img
 
+
+
 img = x_train[random.randint(0, len(x_train) - 1)]
 img = cv2.resize(img, (300, 300))
 cv2.imshow("Original", img)
@@ -151,8 +146,41 @@ cv2.waitKey(0)
 
 # Data Exploration
 
+def plot_distribution(y_train):
+    # Convert string labels to numeric values
+    unique_classes = np.unique(y_train)
+    class_to_int = {label: index for index, label in enumerate(unique_classes)}
+    y_train_numeric = np.array([class_to_int[label] for label in y_train])
+
+    num_classes = len(unique_classes)  # Number of unique classes
+
+    # Plotting the distribution
+    plt.figure(figsize=(15, 15))
+    plt.hist(y_train_numeric, bins=num_classes)  # Use numeric labels here
+    plt.title("Distribution of the training data")
+    plt.xlabel("Class number")
+    plt.ylabel("Number of images")
+    plt.show()
+
+# Call the function with y_train
+plot_distribution(y_train)
 
 
+def check_image_dimensions(x_train):
+    assert (x_train.shape[1:] == (32, 32, 3)), "The dimensions of the images are not 32 x 32 x 3"
+    assert (x_train.shape[0] == len(y_train)), "Number of training images is not equal to the number of labels"
+    assert (x_test.shape[0] == len(y_test)), "Number of testing images is not equal to the number of labels"
+
+check_image_dimensions(x_train)
+
+def reshape_images(x_train, x_test):
+    x_train = x_train.reshape(x_train.shape[0], 32, 32, 3)
+    x_test = x_test.reshape(x_test.shape[0], 32, 32, 3)
+    return x_train, x_test
+
+x_train, x_test = reshape_images(x_train, x_test)
+
+check_image_dimensions(x_train)
 
 
 # Data Augmentation 
@@ -160,22 +188,53 @@ def flip_random_image(image):
   image = cv2.flip(image, 1)
   return image
 
+img = x_train[random.randint(0, len(x_train) - 1)]
+img = cv2.resize(img, (300, 300))
+cv2.imshow("Original", img)
+img = flip_random_image(img)
+cv2.imshow("Flipped", img)
+cv2.waitKey(0)
+
+
+
 def zoom(image):
   zoom = iaa.Affine(scale = (1,1.3))
   image = zoom.augment_image(image)
   return image
 
+img = x_train[random.randint(0, len(x_train) - 1)]
+img = cv2.resize(img, (300, 300))
+cv2.imshow("Original", img)
+img = zoom(img)
+cv2.imshow("Zoomed", img)
+cv2.waitKey(0)
+
 def pan(image):
     pan = iaa.Affine(translate_percent = {"x" : (-0.1,0.1), "y" : (-0.1,0.1)})
     image = pan.augment_image(image)
     return image
+
+img = x_train[random.randint(0, len(x_train) - 1)]
+img = cv2.resize(img, (300, 300))
+cv2.imshow("Original", img)
+img = pan(img)
+cv2.imshow("Panned", img)
+cv2.waitKey(0)
+
 def img_bright(image):
     brightness = iaa.Multiply((0.2,1.2))
     image = brightness.augment_image(image)
     return image
 
-def image_augment():
-    image = mpimg.imread(image)
+img = x_train[random.randint(0, len(x_train) - 1)]
+img = cv2.resize(img, (300, 300))
+cv2.imshow("Original", img)
+img = img_bright(img)
+cv2.imshow("Bright", img)
+cv2.waitKey(0)
+
+def image_augment(image):
+    # Assuming 'image' is a numpy array representing an image
     if np.random.rand() < 0.5:
         image = zoom(image)
     if np.random.rand() < 0.5:
@@ -184,24 +243,70 @@ def image_augment():
         image = img_bright(image)
     if np.random.rand() < 0.5:
         image = flip_random_image(image)
-    return image,
+    return image
 
-# #First Iteration of Our Model Based of the one we used in Class also used in the below article 
-# #https://www.geeksforgeeks.org/image-classification-using-cifar-10-and-cifar-100-dataset-in-tensorflow/
-# def alpha_model():
-#     model = Sequential()
-#     model.add(Conv2D(32, (3,3), input_shape=(32,32,3), activation='relu'))
-#     model.add(MaxPooling2D(pool_size=(2,2)))
-#     model.add(Conv2D(64, (3,3), input_shape=(32,32,3), activation='relu'))
-#     model.add(MaxPooling2D(pool_size=(2,2)))
-#     model.add(Flatten())
-#     model.add(Dense(500, activation ='relu'))
-#     model.add(Dropout(0.5))
-#     model.add(Dense(num_classes, activation='softmax'))
-#     model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
-#     return model
+# Visualize the augmented images
+plt.figure(figsize=(10, 5))
+for i in range(10):
+    augmented_image = image_augment(x_train[random.randint(0, len(x_train) - 1)])
+    plt.subplot(2, 5, i + 1)
+    plt.imshow(augmented_image)
+    plt.axis('off')
+plt.tight_layout()
+plt.show()
 
-# model = alpha_model()
-# history = model.fit(x_train_10, y_train_10, epochs=10, validation_data=(x_test_10, y_test_10))
+# After data augmentation but before model definition
+x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+
+
+# Augment the data
+
+datagen = ImageDataGenerator(
+    preprocessing_function=image_augment,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    zoom_range=0.2,
+    shear_range=0.1,
+    rotation_range=10
+)
+
+datagen.fit(x_train)
+
+# Visualize the augmented data
+plt.figure(figsize=(10, 5))
+for i in range(10):
+    plt.subplot(2, 5, i + 1)
+    plt.imshow(x_train[random.randint(0, len(x_train) - 1)])
+    plt.axis('off')
+plt.tight_layout()
+plt.show()
+
+
+
+# Check the dimensions of the data
+print(x_train.shape, x_test.shape)
+
+# Visualize the augmented data
+plt.figure(figsize=(10, 5))
+for i in range(10):
+    plt.subplot(2, 5, i + 1)
+    plt.imshow(x_train[random.randint(0, len(x_train) - 1)])
+    plt.axis('off')
+plt.tight_layout()
+plt.show()
+
+# Count the occurrence of each class
+unique_classes, counts = np.unique(y_train, return_counts=True)
+
+plt.figure(figsize=(15, 10))  # Increase figure size
+plt.bar(unique_classes, counts, color='skyblue')
+plt.title('Distribution of Classes in the Training Set')
+plt.xlabel('Class')
+plt.ylabel('Number of Images')
+plt.xticks(unique_classes, rotation=90, fontsize=8)  # Rotate labels and adjust font size
+plt.tight_layout()  # Adjust layout to fit everything
+plt.show()
+
+
 
 
