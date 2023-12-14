@@ -1,190 +1,229 @@
+from keras.datasets import cifar10, cifar100
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
 from keras.models import Sequential
-from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
+from keras.layers import Dense, Dropout, Flatten
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 from keras.layers import Conv2D, MaxPooling2D
 import pickle
-import random
 import pandas as pd
+import random
 import cv2
 import requests
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
-import os
-import tensorflow as tf
-from sklearn.model_selection import train_test_split
+from imgaug import augmenters as iaa # pip install imgaug
+from sklearn.preprocessing import LabelEncoder
 
 
 
-np.random.seed(0)
+# load CIFAR-10 data
+(x_train_10, y_train_10), (x_test_10, y_test_10) = cifar10.load_data()
+print("x_train_10 shape:", x_train_10.shape, "y_train_10 shape:", y_train_10.shape)
+# load CIFAR-100 data
+(x_train_100, y_train_100), (x_test_100, y_test_100) = cifar100.load_data(label_mode='fine')
+print("x_train_100 shape:", x_train_100.shape, "y_train_100 shape:", y_train_100.shape)
+
+class_names_cifar10 = [
+    'airplane', 'automobile', 'bird', 'cat', 'deer',
+    'dog', 'frog', 'horse', 'ship', 'truck'
+]
+
+cifar_10_classes_needed = ["automobile", "bird", "cat", "deer", "dog","horse", "truck"]
+# Create a dictionary mapping numerical labels to class names
+label_to_class_name = {i: class_names_cifar10[i] for i in range(len(class_names_cifar10))}
+# Apply the mapping to the training and testing labels
+y_train_10 = [label_to_class_name[label] for label in y_train_10.flatten()]
+y_test_10 = [label_to_class_name[label] for label in y_test_10.flatten()]
+
+class_names = [
+    'apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottle',
+    'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle', 'caterpillar', 'cattle',
+    'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch', 'crab', 'crocodile', 'cup', 'dinosaur',
+    'dolphin', 'elephant', 'flatfish', 'forest', 'fox', 'girl', 'hamster', 'house', 'kangaroo', 'keyboard',
+    'lamp', 'lawn_mower', 'leopard', 'lion', 'lizard', 'lobster', 'man', 'maple_tree', 'motorcycle', 'mountain',
+    'mouse', 'mushroom', 'oak_tree', 'orange', 'orchid', 'otter', 'palm_tree', 'pear', 'pickup_truck', 'pine_tree',
+    'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road', 'rocket',
+    'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake', 'spider',
+    'squirrel', 'streetcar', 'sunflower', 'sweet_pepper', 'table', 'tank', 'telephone', 'television', 'tiger', 'tractor',
+    'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale', 'willow_tree', 'wolf', 'woman', 'worm'
+]
+
+classes_needed_cifar100 = ["cattle", "fox", "baby", "boy", "girl", "man", "woman", "rabbit", "squirrel", "maple_tree", "oak_tree", "palm_tree", "pine_tree", "willow_tree", "bicycle", "bus", "motorcycle", "pickup_truck", "train", "lawn_mower", "tractor"]
+
+# Create a dictionary mapping numerical labels to class names
+label_to_class_name = {i: class_names[i] for i in range(len(class_names))}
+# Apply the mapping to the training and testing labels
+y_train_100 = [label_to_class_name[label] for label in y_train_100.flatten()]
+y_test_100 = [label_to_class_name[label] for label in y_test_100.flatten()]
+# Only keep the images that are in the classes_needed
+x_train_10 = x_train_10[np.isin(y_train_10, cifar_10_classes_needed).flatten()]
+y_train_10 = np.array(y_train_10)[np.isin(y_train_10, cifar_10_classes_needed).flatten()]
+x_test_10 = x_test_10[np.isin(y_test_10, cifar_10_classes_needed).flatten()]
+y_test_10 = np.array(y_test_10)[np.isin(y_test_10, cifar_10_classes_needed).flatten()]
+# Only keep the images that are in the classes_needed
+x_train_100 = x_train_100[np.isin(y_train_100, classes_needed_cifar100).flatten()]
+y_train_100 = np.array(y_train_100)[np.isin(y_train_100, classes_needed_cifar100).flatten()]
+x_test_100 = x_test_100[np.isin(y_test_100, classes_needed_cifar100).flatten()]
+y_test_100 = np.array(y_test_100)[np.isin(y_test_100, classes_needed_cifar100).flatten()]
+
+# Resize the images to 32x32x3
+x_train_10 = np.array([cv2.resize(img, (32, 32)) for img in x_train_10])
+x_test_10 = np.array([cv2.resize(img, (32, 32)) for img in x_test_10])
+x_train_100 = np.array([cv2.resize(img, (32, 32)) for img in x_train_100])
+x_test_100 = np.array([cv2.resize(img, (32, 32)) for img in x_test_100])
+
+# Print the shape of the data Before
+print(x_train_10.shape, y_train_10.shape, x_test_10.shape, y_test_10.shape)
+print(x_train_100.shape, y_train_100.shape, x_test_100.shape, y_test_100.shape)
+
+# Join the two datasets
+x_train = np.concatenate((x_train_10, x_train_100), axis=0)
+y_train = np.concatenate((y_train_10, y_train_100), axis=0)
+x_test = np.concatenate((x_test_10, x_test_100), axis=0)
+y_test = np.concatenate((y_test_10, y_test_100), axis=0)
+
+# Print the shape of the data After
+print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
+
+print(set(y_train))  # This will show all unique classes in your training set
+
+# Visualize the Classes
 num_of_samples = []
 cols = 5
-num_classes = 109
-num_pixels = 3072
+num_classes = np.unique(y_train)
+fig, axs = plt.subplots(nrows=len(num_classes), ncols=cols, figsize=(5, 50))
+fig.tight_layout()
 
-
-def unpickle(file):
-    with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding='bytes')
-    return dict
-
-def extract_relevant_data(unpickled_data, relevant_classes):
-    images = unpickled_data[b'data']
-    labels = unpickled_data[b'labels'] if b'labels' in unpickled_data else unpickled_data[b'fine_labels']
-    relevant_images = []
-    relevant_labels = []
-    for i, label in enumerate(labels):
-        if label in relevant_classes:
-            relevant_images.append(images[i])
-            relevant_labels.append(label)
-    return np.array(relevant_images), np.array(relevant_labels)
-
-def preprocess_data(images, labels, num_classes):
-    # Normalize pixel values to 0-1
-    images = images.astype('float32') / 255.0
-
-    # Reshape data for CNN (32x32 pixels with 3 channels)
-    # The correct order is (number of images, height, width, channels)
-    images = images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
-
-    # One-hot encode labels
-    labels = to_categorical(labels, num_classes)
-
-    return images, labels
-
-def show_images(images, labels, class_names, num_images=5):
-    fig, axes = plt.subplots(1, num_images, figsize=(15, 3))
-    for i, ax in enumerate(axes):
-        ax.imshow(images[i])
-        ax.set_title(class_names[labels[i]])
-        ax.axis('off')
-    plt.show()
-
-def plot_class_representations(images, labels, class_names, samples_per_class=5):
-    num_classes = len(class_names)
-    fig, axes = plt.subplots(nrows=num_classes, ncols=samples_per_class, figsize=(15, 2 * num_classes))
-    fig.tight_layout()
-    for class_idx in range(num_classes): 
-        idxs = np.where(labels == class_idx)[0][:samples_per_class] 
-        for plot_idx, img_idx in enumerate(idxs): #img
-            ax = axes[class_idx, plot_idx] if samples_per_class > 1 else axes[plot_idx] 
-            ax.imshow(images[img_idx], cmap=plt.get_cmap('gray')) 
-            ax.axis('off')
-           # ax.set_title(f'{class_idx}-{class_names[class_idx]}')        
-    plt.show()
-
-def plot_distribution(labels, title='Distribution of the training set', xlabel='Class Number', ylabel='Number of images'):
-    # Count the number of images per class
-    unique, counts = np.unique(labels, return_counts=True)
-    # Plot the distribution
-    plt.figure(figsize=(15, 5))
-    plt.bar(unique, counts, color='blue')
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.xticks(unique)  # Ensure all class numbers are shown on the x-axis
-    plt.show()
+for i in range(cols):
+    for j, label in enumerate(num_classes):
+        x_selected = x_train[y_train == label]
+        if len(x_selected) > 0:
+            img_index = random.randint(0, len(x_selected) - 1)
+            axs[j][i].imshow(x_selected[img_index, :, :], cmap=plt.get_cmap('gray'))
+            axs[j][i].axis("off")
+            if i == 2:
+                num_of_samples.append(len(x_selected))
+plt.show()
 
 
 
-def main():
-    
-    cifar101_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_1')
-    cifar102_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_2')
-    cifar103_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_3')
-    cifar104_data = unpickle('cifar_files/cifar-10-batches-py/data_batch_4')
-    cifar100_data = unpickle('cifar_files/cifar-100-python/train')
+print(set(y_train))
+x_train = np.array(list(map(preprocessing, x_train)))
+x_test = np.array(list(map(preprocessing, x_test)))
+
+# After preprocessing, add a channel dimension to x_train and x_test
+x_train = x_train.reshape(x_train.shape[0], 32, 32, 1)
+x_test = x_test.reshape(x_test.shape[0], 32, 32, 1)
+
+# Step 1: Convert string labels to integer labels
+label_encoder = LabelEncoder()
+y_train = label_encoder.fit_transform(y_train)
+y_test = label_encoder.transform(y_test)
 
 
+unique_classes = np.unique(y_train)
+num_classes = len(unique_classes)
+# Step 2: Apply to_categorical
+y_train = to_categorical(y_train, num_classes)
+y_test = to_categorical(y_test, num_classes)
+# Assuming y_train is a numpy array of labels
 
-    # Load label names from metadata files
-    cifar10_meta = unpickle('cifar_files/cifar-10-batches-py/batches.meta')
-    cifar100_meta = unpickle('cifar_files/cifar-100-python/meta')
+print(x_train.shape), print(y_train.shape), print(x_test.shape), print(y_test.shape)
 
-    # Extract label names
-    cifar10_label_names = [t.decode('utf8') for t in cifar10_meta[b'label_names']]
-    cifar100_label_names = [t.decode('utf8') for t in cifar100_meta[b'fine_label_names']]
+#First Iteration of Our Model Based of the one we used in Class 
+def alpha_model():
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), input_shape=(32, 32, 1), activation='relu'))  # Adjust input_shape here
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Conv2D(64, (3,3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Flatten())
+    model.add(Dense(500, activation ='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))  # Use num_classes here
+    model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
 
-    print("---------------------------------------------")
-    print("CIFAR-10 label names:", cifar10_label_names)
-    print("---------------------------------------------")
-    print("CIFAR-100 label names:", cifar100_label_names)
-    print("---------------------------------------------")
+model = alpha_model()
+history = model.fit(x_train, y_train, epochs=1, validation_data=(x_test, y_test), 
+                    batch_size=100, verbose=1, shuffle=1)
+model.summary()
 
-     # Combined class mapping
-    combined_class_mapping = {
-        # CIFAR-10 classes
-        'airplane': 0, 'automobile': 1, 'bird': 2, 'cat': 3, 'deer': 4,
-        'dog': 5, 'frog': 6, 'horse': 7, 'ship': 8, 'truck': 9,
-        # CIFAR-100 classes, starting from 10
-        'cattle': 10, 'fox': 11, 'baby': 12, 'boy': 13, 'girl': 14,
-        'man': 15, 'woman': 16, 'rabbit': 17, 'squirrel': 18, 'bicycle': 19,
-        'bus': 20, 'motorcycle': 21, 'pickup_truck': 22, 'train': 23,
-        'cockroach': 24, 'couch': 25
-    }
-    
-    
-     # Convert label names to label lists
-    cifar10_relevant_labels = [combined_class_mapping[name] for name in cifar10_label_names if name in combined_class_mapping]
-    cifar100_relevant_labels = [combined_class_mapping[name] for name in cifar100_label_names if name in combined_class_mapping]
+# Plotting our loss charts
+plt.figure(0)
+plt.plot(history.history['loss'], 'r')
+plt.plot(history.history['val_loss'], 'g')
+plt.xticks(np.arange(0, 10, 1.0))
+plt.rcParams['figure.figsize'] = (8, 6)
+plt.xlabel("Num of Epochs")
+plt.ylabel("Loss")
+plt.title("Training Loss vs Validation Loss")
+plt.legend(['train', 'validation'])
+plt.show()  
 
-    # Extract relevant data
-    cifar101_images, cifar101_labels = extract_relevant_data(cifar101_data, cifar10_relevant_labels)
-    cifar102_images, cifar102_labels = extract_relevant_data(cifar102_data, cifar10_relevant_labels)
-    cifar103_images, cifar103_labels = extract_relevant_data(cifar103_data, cifar10_relevant_labels)
-    cifar104_images, cifar104_labels = extract_relevant_data(cifar104_data, cifar10_relevant_labels)
+# Plotting our accuracy charts
+plt.figure(1)
+plt.plot(history.history['accuracy'], 'r')
+plt.plot(history.history['val_accuracy'], 'g')
+plt.xticks(np.arange(0, 10, 1.0))
+plt.rcParams['figure.figsize'] = (8, 6)
+plt.xlabel("Num of Epochs")
+plt.ylabel("Accuracy")
+plt.title("Training Accuracy vs Validation Accuracy")
+plt.legend(['train', 'validation'])
+plt.show()
 
-    cifar100_images, cifar100_labels = extract_relevant_data(cifar100_data, cifar100_relevant_labels)
+# Predictions
+predictions = model.predict(x_test)
+predicted_labels = np.argmax(predictions, axis=1)
 
-    # Preprocess data
-    cifar101_images, cifar101_labels = preprocess_data(cifar101_images, cifar101_labels, len(combined_class_mapping))
-    cifar102_images, cifar102_labels = preprocess_data(cifar102_images, cifar102_labels, len(combined_class_mapping))
-    cifar103_images, cifar103_labels = preprocess_data(cifar103_images, cifar103_labels, len(combined_class_mapping))
-    cifar104_images, cifar104_labels = preprocess_data(cifar104_images, cifar104_labels, len(combined_class_mapping))
-    
-    cifar100_images, cifar100_labels = preprocess_data(cifar100_images, cifar100_labels, len(combined_class_mapping))
+# Initialize the dictionary for counting classes
+# Convert labels in label_encoder.classes_ to integers if they are not already
+class_indices = range(len(label_encoder.classes_))  # Assuming label_encoder.classes_ are in order
+class_counts = {label_index: 0 for label_index in class_indices}
 
-    # Combine datasets
-    combined_images = np.concatenate([cifar101_images, cifar102_images, cifar103_images, cifar104_images, cifar100_images])
-    combined_labels = np.concatenate([cifar101_labels, cifar102_labels, cifar103_labels, cifar104_labels, cifar100_labels])
+# Count the number of images in each class
+for label_array in y_test:
+    label = np.argmax(label_array)  # Extracting the label index
+    class_counts[label] += 1
 
-     # Data Exploration
-    print("Size of each image: 32x32 pixels")
-    
-    # Count the number of images in each class before preprocessing
-    cifar10_label_counts = {label: cifar101_data[b'labels'].count(label) for label in cifar10_relevant_labels}
-    cifar100_label_counts = {label: cifar100_data[b'fine_labels'].count(label) for label in cifar100_relevant_labels}
+# Convert counts to a list for plotting
+labels = label_encoder.classes_  # Class names
+counts = [class_counts[index] for index in class_indices]
 
-    print("Number of images per class in CIFAR-10 before preprocessing:", cifar10_label_counts)
-    print("Number of images per class in CIFAR-100 before preprocessing:", cifar100_label_counts)
+# Plotting
+plt.figure(figsize=(20, 10))
+plt.bar(labels, counts)
+plt.xlabel('Class Labels')
+plt.ylabel('Number of Images')
+plt.title('Distribution of Classes in the CIFAR Dataset')
+plt.xticks(labels, rotation=90)
+plt.show()
 
-    # Count the number of images in each class after preprocessing
-    post_processed_label_counts = np.sum(combined_labels, axis=0)
-    print("Number of images per class after preprocessing:", post_processed_label_counts)
+# Show images from each class
+# Convert one-hot encoded y_test to class indices
+class_indices = np.argmax(y_test, axis=1)
 
-    # Extract class names for visualization
-    class_names = [name for name, index in sorted(combined_class_mapping.items(), key=lambda item: item[1])]
+plt.figure(figsize=(20, 10))
+for i in range(num_classes):
+    # Select images of class i
+    x_selected = x_test[class_indices == i]
 
-    # Show a few images from each class
-    show_images(combined_images, np.argmax(combined_labels, axis=1), class_names)
-    plot_class_representations(combined_images, np.argmax(combined_labels, axis=1), class_names)
+    # In case there are no images of a certain class, continue to the next
+    if len(x_selected) == 0:
+        continue
 
-    class_numbers = np.argmax(combined_labels, axis=1)
-    plot_distribution(class_numbers)
-    
-    # Split the data into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(combined_images, combined_labels, test_size=0.2, random_state=0)
+    img = x_selected[0]  # Select the first image of class i
+    plt.subplot(1, num_classes, i + 1)
+    plt.imshow(img.squeeze(), cmap=plt.get_cmap('gray'))
+    plt.axis('off')
+    plt.title("Label: {}".format(label_encoder.classes_[i]))
+plt.show()
 
-    # Split the training set into training and validation sets
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=0)
-
-    # Check the shape of the training, validation, and test sets
-    print("Training set shape:", X_train.shape, y_train.shape)
-    print("Validation set shape:", X_val.shape, y_val.shape)
-    print("Test set shape:", X_test.shape, y_test.shape)
-
-if __name__ == '__main__':
-    main()

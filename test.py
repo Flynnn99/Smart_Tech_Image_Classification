@@ -19,19 +19,21 @@ selected_classes_cifar100 = [4, 5, 6]
 
 #Preprocessing
 def greyscale(img):
+    img = np.float32(img)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return img
 
+# Histogram equalisation aims to standardise the lighting in all the images, enhaces contrast
 def equalize(img):
-    img = cv2.equalizeHist(img)
-    return img
+  img = cv2.equalizeHist(img)
+  return img
 
 def preprocessing(img):
-    img = np.float32(img)
-    img = greyscale(img)
-    img = equalize(img)
-    img = img / 255
-    return img
+    greyimg = greyscale(img)#
+    histimg = equalize(greyimg)
+    normimg = histimg / 255.0
+    #image = cv2.equalizeHist(greyscale_img)
+    return normimg
 
 # Function to filter dataset based on selected classes
 def filter_dataset(images, labels, selected_classes):
@@ -70,7 +72,8 @@ def alpha_model():
 
 #Plotting the Loss
 def plot_loss(model, train_images, train_labels_categorical, test_images, test_labels_categorical):
-    history = model.fit(train_images, train_labels_categorical, epochs=10, validation_data=(test_images, test_labels_categorical))
+    history = model.fit(train_images, train_labels_categorical, epochs=10, 
+                        validation_data=(test_images, test_labels_categorical))
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.legend(['loss', 'val_loss'])
