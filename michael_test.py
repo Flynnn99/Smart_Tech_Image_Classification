@@ -133,6 +133,7 @@ def plot_distribution(y_train):
 plot_distribution(y_train)
 
 
+img = preprocessing(x_train[2000])
 plt.imshow(x_train[2000])
 plt.xlabel(y_train[2000])
 print(x_train[2000].shape)

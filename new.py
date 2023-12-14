@@ -40,7 +40,7 @@ class_mapping = {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5}
 train_labels_mapped = np.vectorize(class_mapping.get)(train_labels)
 test_labels_mapped = np.vectorize(class_mapping.get)(test_labels)
 
-print(set(train_labels_mapped))
+#print(set(train_labels_mapped))
 
 # Display Image
 import matplotlib.pyplot as plt
@@ -94,4 +94,5 @@ plt.ylabel('Accuracy')
 plt.ylim([0, 1])
 plt.legend(loc='lower right')
 plt.show()
+
 
