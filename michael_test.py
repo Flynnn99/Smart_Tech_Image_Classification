@@ -127,13 +127,14 @@ def visualize(x_train, y_train):
 visualize(x_train, y_train)
 
 #split the data
-x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=6)
+print(f"Training samples {len(x_train,)}, Validation Samples{len(x_val)}")
 
 #Alternative to Augment data we used in German Road signs
 #Just incase the one below doesn't work
 datagen = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.2, shear_range=0.1,rotation_range=10)
 datagen.fit(x_train)
-batches = datagen.flow(x_train, y_train, batch_size=20)
+batches = datagen.flow(x_train, y_train, batch_size=50)
 X_batch, y_batch = next(batches)
 
 fig,axs = plt.subplots(1,20, figsize=(20, 5))
@@ -142,66 +143,7 @@ for i in range(20):
   axs[i].imshow(X_batch[i].reshape(32,32,3) /255)
   axs[i].axis('off')
 plt.show()
-#Augmenting the Data
-def zoom(image):
-  zoom = iaa.Affine(scale = (1,1.3))
-  image = zoom.augment_image(image)
-  return image
 
-def pan(image):
-    pan = iaa.Affine(translate_percent = {"x": (-0.1,0.1), "y": (-0.1,0.1)})
-    image = pan.augment_image(image)
-    return image
-
-def flip(image):
-    image = cv2.flip(image,1)
-    return image
-
-def brightness(image):
-    brightness = iaa.Multiply((0.2,1.2))
-    image = brightness.augment_image(image)
-    return image
-
-def random_augment(image):
-    
-    #augment_image = mpimg.imread(image)
-    if np.random.rand() < 0.50:
-        image = pan(image)
-    if np.random.rand() < 0.50:
-        image = zoom(image)
-    if np.random.rand() < 0.50:
-        image = flip(image)
-    if np.random.rand() < 0.50:
-        image = brightness(image)
-    return image
-
-def batch_generator(x_train, y_train, batch_size, is_training):
-    while True:
-        batch_x = []
-        batch_y = []
-
-        for i in range(batch_size):
-            random_index = random.randint(0, len(x_train)-1)
-
-            if is_training:
-                im = random_augment(x_train[random_index])
-            else:
-                im = x_train[random_index]
-
-            
-            batch_x.append(im)
-            batch_y.append(y_train[random_index])
-
-        yield(np.asarray(batch_x), np.asarray(batch_y))
-
-x_train_gen, y_train_gen, = next(batch_generator(x_train, y_train, 1,1))
-x_valid_gen, y_valid_gen , = next(batch_generator(x_val, y_val, 1,0)) # not training data
-
-figs,axs = plt.subplots(1,2, figsize=[15,10])
-axs[0].imshow(x_train_gen[0])
-axs[0].set_title(y_train_gen[0])
-axs[1].imshow(x_valid_gen[0])
-axs[1].set_title(y_valid_gen[0])
 
 # Preprocessing the Data
 def grayscale(img):
@@ -211,28 +153,35 @@ def equalize(img):
     img = cv2.equalizeHist(img)
     return img
 
-def preprocessing(img):
-    img = grayscale(img)  # convert to grayscale
-    img = equalize(img)  # standardize the lighting in an image
-    img = img / 255  # normalize values between 0 and 1 instead of 0 and 255
-    return img
+def preprocessing(new_img):
+    
+    new_img = grayscale(new_img)  # convert to grayscale
+    new_img = equalize(new_img)  # standardize the lighting in an image
+    new_img = new_img / 255  # normalize values between 0 and 1 instead of 0 and 255
+    return new_img
 
 print(set(y_train))
+
 x_train = np.array(list(map(preprocessing, x_train)))
+x_val = np.array(list(map(preprocessing, x_val)))
 x_test = np.array(list(map(preprocessing, x_test)))
+
+
 
 # After preprocessing, add a channel dimension to x_train and x_test
 
-def reshape(x_train, x_test):
+def reshape(x_train, x_test, x_val):
     x_train = x_train.reshape(x_train.shape[0], 32, 32, 1)
     x_test = x_test.reshape(x_test.shape[0], 32, 32, 1)
-    return x_train, x_test
+    x_val = x_val.reshape(x_val.shape[0], 32, 32, 1)
+    return x_train, x_test, x_val
 
-x_train, x_test = reshape(x_train, x_test)
+x_train, x_test, x_val = reshape(x_train, x_test, x_val)
 
 # Step 1: Convert string labels to integer labels
 label_encoder = LabelEncoder()
 y_train = label_encoder.fit_transform(y_train)
+y_val = label_encoder.transform(y_val)
 y_test = label_encoder.transform(y_test)
 
 
@@ -240,9 +189,11 @@ unique_classes = np.unique(y_train)
 num_classes = len(unique_classes)
 # Step 2: Apply to_categorical
 y_train = to_categorical(y_train, num_classes)
+y_val = to_categorical(y_val, num_classes)
 y_test = to_categorical(y_test, num_classes)
 # Assuming y_train is a numpy array of labels
 
+print(f"Shape of x val{len(x_val)}")
 print(x_train.shape), print(y_train.shape), print(x_test.shape), print(y_test.shape)
 
 # #First Iteration of Our Model Based of the one we used in Class 
@@ -266,8 +217,8 @@ def modified_model():
   model.add(MaxPooling2D(pool_size=(2,2)))
   model.add(Conv2D(64, (3,3), activation='relu'))
   model.add(MaxPooling2D(pool_size=(2,2)))
-#   model.add(Conv2D(32, (3,3), activation='relu'))
-#   model.add(MaxPooling2D(pool_size=(2,2)))
+  model.add(Conv2D(32, (3,3), activation='relu'))
+  model.add(MaxPooling2D(pool_size=(2,2)))
   model.add(Flatten())
   model.add(Dense(500, activation ='relu')) 
   model.add(Dropout(0.5))
@@ -277,15 +228,16 @@ def modified_model():
 
 model = modified_model()
 
-#Think the batch function goes in here **** 
+# #Think the batch function goes in here **** 
 # history = model.fit(batch_generator(x_train, y_train, 50, 1), steps_per_epoch=200, 
-#    epochs=1, validation_data=batch_generator(x_val, y_val, 50, 0), validation_steps=200, shuffle=1)
+   #epochs=1, validation_data=batch_generator(x_val, y_val, 50, 0), validation_steps=200, shuffle=1)
 
-history = model.fit(x_train, y_train, epochs=15, validation_data=(x_test, y_test), 
-                   batch_size=200, verbose=1, shuffle=1)
+#history = model.fit(datagen.flow(x_train, y_train, batch_size=200), epochs=20, validation_data=(x_val, y_val), verbose=1, shuffle=1)
+#history = model.fit(datagen.flow(x_train,y_train, batch_size=100), epochs = 15, validation_data =(x_val,y_val),verbose=1,shuffle=1)
+history = model.fit(datagen.flow(x_train,y_train, batch_size=2000), steps_per_epoch=x_train.shape[0]/50, epochs = 50, validation_data =(x_val,y_val),verbose=1,shuffle=1)
 model.summary()
 
-# Plotting our loss charts
+# Plotting our loss charts#
 plt.figure(0)
 plt.plot(history.history['loss'], 'r')
 plt.plot(history.history['val_loss'], 'g')
