@@ -137,6 +137,7 @@ datagen.fit(x_train)
 batches = datagen.flow(x_train, y_train, batch_size=50)
 X_batch, y_batch = next(batches)
 
+
 fig,axs = plt.subplots(1,20, figsize=(20, 5))
 fig.tight_layout()
 for i in range(20):
@@ -144,6 +145,8 @@ for i in range(20):
   axs[i].axis('off')
 plt.show()
 
+print(X_batch.shape)
+print(y_batch.shape)
 
 # Preprocessing the Data
 def grayscale(img):
@@ -213,9 +216,7 @@ def alpha_model():
 
 def modified_model():
   model = Sequential()
-  model.add(Conv2D(64, (3,3), input_shape=(32,32,1), activation='relu'))
-  model.add(MaxPooling2D(pool_size=(2,2)))
-  model.add(Conv2D(64, (3,3), activation='relu'))
+  model.add(Conv2D(32, (3,3), input_shape=(32,32,1), activation='relu'))
   model.add(MaxPooling2D(pool_size=(2,2)))
   model.add(Conv2D(32, (3,3), activation='relu'))
   model.add(MaxPooling2D(pool_size=(2,2)))
@@ -228,13 +229,7 @@ def modified_model():
 
 model = modified_model()
 
-# #Think the batch function goes in here **** 
-# history = model.fit(batch_generator(x_train, y_train, 50, 1), steps_per_epoch=200, 
-   #epochs=1, validation_data=batch_generator(x_val, y_val, 50, 0), validation_steps=200, shuffle=1)
-
-#history = model.fit(datagen.flow(x_train, y_train, batch_size=200), epochs=20, validation_data=(x_val, y_val), verbose=1, shuffle=1)
-#history = model.fit(datagen.flow(x_train,y_train, batch_size=100), epochs = 15, validation_data =(x_val,y_val),verbose=1,shuffle=1)
-history = model.fit(datagen.flow(x_train,y_train, batch_size=2000), steps_per_epoch=x_train.shape[0]/50, epochs = 50, validation_data =(x_val,y_val),verbose=1,shuffle=1)
+history = model.fit(datagen.flow(x_train,y_train, batch_size=800), epochs = 15, validation_data =(x_val,y_val),verbose=1,shuffle=1)
 model.summary()
 
 # Plotting our loss charts#
