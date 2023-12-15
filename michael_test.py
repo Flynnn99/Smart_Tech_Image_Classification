@@ -5,6 +5,7 @@ import pandas as pd
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
@@ -130,11 +131,17 @@ x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.
 
 #Alternative to Augment data we used in German Road signs
 #Just incase the one below doesn't work
-# datagen = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.2, shear_range=0.1,rotation_range=10)
-# datagen.fit(x_train)
-# batches = datagen.flow(x_train, y_train, batch_size=20)
-# X_batch, y_batch = next(batches)
+datagen = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.2, shear_range=0.1,rotation_range=10)
+datagen.fit(x_train)
+batches = datagen.flow(x_train, y_train, batch_size=20)
+X_batch, y_batch = next(batches)
 
+fig,axs = plt.subplots(1,20, figsize=(20, 5))
+fig.tight_layout()
+for i in range(20):
+  axs[i].imshow(X_batch[i].reshape(32,32,3) /255)
+  axs[i].axis('off')
+plt.show()
 #Augmenting the Data
 def zoom(image):
   zoom = iaa.Affine(scale = (1,1.3))
@@ -156,6 +163,8 @@ def brightness(image):
     return image
 
 def random_augment(image):
+    
+    #augment_image = mpimg.imread(image)
     if np.random.rand() < 0.50:
         image = pan(image)
     if np.random.rand() < 0.50:
@@ -179,19 +188,20 @@ def batch_generator(x_train, y_train, batch_size, is_training):
             else:
                 im = x_train[random_index]
 
+            
             batch_x.append(im)
             batch_y.append(y_train[random_index])
 
         yield(np.asarray(batch_x), np.asarray(batch_y))
 
-x_train_gen, y_train_gen = next(batch_generator(x_train, y_train, 1,1))
-x_valid_gen, y_valid_gen = next(batch_generator(x_val, y_val, 1,0)) # not trainig data
+x_train_gen, y_train_gen, = next(batch_generator(x_train, y_train, 1,1))
+x_valid_gen, y_valid_gen , = next(batch_generator(x_val, y_val, 1,0)) # not training data
 
 figs,axs = plt.subplots(1,2, figsize=[15,10])
 axs[0].imshow(x_train_gen[0])
-axs[0].set_title("Training Image")
+axs[0].set_title(y_train_gen[0])
 axs[1].imshow(x_valid_gen[0])
-axs[1].set_title("Validation Image")
+axs[1].set_title(y_valid_gen[0])
 
 # Preprocessing the Data
 def grayscale(img):
@@ -235,7 +245,7 @@ y_test = to_categorical(y_test, num_classes)
 
 print(x_train.shape), print(y_train.shape), print(x_test.shape), print(y_test.shape)
 
-#First Iteration of Our Model Based of the one we used in Class 
+# #First Iteration of Our Model Based of the one we used in Class 
 def alpha_model():
     model = Sequential()
     model.add(Conv2D(32, (3, 3), input_shape=(32, 32, 1), activation='relu'))  # Adjust input_shape here
@@ -246,13 +256,33 @@ def alpha_model():
     model.add(Dense(500, activation ='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(num_classes, activation='softmax'))  # Use num_classes here
+    model.add(Dropout(0.5))
     model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
-model = alpha_model()
-#Think the batch function goes in here **** model.fit(batch_generator(x_train, y_train, 50, 1), steps_per_epoch=2000, epochs=1, validation_data=batch_generator(x_val, y_val, 50, 0), validation_steps=2000, shuffle=1)
-history = model.fit(x_train, y_train, epochs=1, validation_data=(x_test, y_test), 
-                    batch_size=100, verbose=1, shuffle=1)
+def modified_model():
+  model = Sequential()
+  model.add(Conv2D(64, (3,3), input_shape=(32,32,1), activation='relu'))
+  model.add(MaxPooling2D(pool_size=(2,2)))
+  model.add(Conv2D(64, (3,3), activation='relu'))
+  model.add(MaxPooling2D(pool_size=(2,2)))
+#   model.add(Conv2D(32, (3,3), activation='relu'))
+#   model.add(MaxPooling2D(pool_size=(2,2)))
+  model.add(Flatten())
+  model.add(Dense(500, activation ='relu')) 
+  model.add(Dropout(0.5))
+  model.add(Dense(num_classes, activation='softmax'))
+  model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+  return model
+
+model = modified_model()
+
+#Think the batch function goes in here **** 
+# history = model.fit(batch_generator(x_train, y_train, 50, 1), steps_per_epoch=200, 
+#    epochs=1, validation_data=batch_generator(x_val, y_val, 50, 0), validation_steps=200, shuffle=1)
+
+history = model.fit(x_train, y_train, epochs=15, validation_data=(x_test, y_test), 
+                   batch_size=200, verbose=1, shuffle=1)
 model.summary()
 
 # Plotting our loss charts
