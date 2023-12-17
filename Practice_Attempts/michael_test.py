@@ -216,20 +216,21 @@ def alpha_model():
 
 def modified_model():
   model = Sequential()
-  model.add(Conv2D(32, (3,3), input_shape=(32,32,1), activation='relu'))
+  model.add(Conv2D(60, (5,5), input_shape=(32,32,1), activation='relu'))
   model.add(MaxPooling2D(pool_size=(2,2)))
-  model.add(Conv2D(32, (3,3), activation='relu'))
+  model.add(Conv2D(30, (5,5), activation='relu'))
   model.add(MaxPooling2D(pool_size=(2,2)))
   model.add(Flatten())
   model.add(Dense(500, activation ='relu')) 
   model.add(Dropout(0.5))
   model.add(Dense(num_classes, activation='softmax'))
-  model.compile(Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+  model.compile(Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
   return model
 
 model = modified_model()
 
-history = model.fit(datagen.flow(x_train,y_train, batch_size=800), epochs = 15, validation_data =(x_val,y_val),verbose=1,shuffle=1)
+#history = model.fit(datagen.flow(x_train,y_train, batch_size=800), epochs = 20, validation_data =datagen.flow(x_val,y_val),verbose=1,shuffle=1)
+#history = model.fit(datagen.flow(x_train, y_train, batch_size=100), epochs=20, validation_split=0.1, verbose=1, shuffle=1)
 model.summary()
 
 # Plotting our loss charts#
