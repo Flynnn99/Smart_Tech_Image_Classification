@@ -18,12 +18,10 @@ print("x_train_10 shape:", x_train_10.shape, "y_train_10 shape:", y_train_10.sha
 # load CIFAR-100 data
 (x_train_100, y_train_100), (x_test_100, y_test_100) = cifar100.load_data(label_mode='fine')
 print("x_train_100 shape:", x_train_100.shape, "y_train_100 shape:", y_train_100.shape)
-class_names_cifar10 = [
-    'airplane', 'automobile', 'bird', 'cat', 'deer',
-    'dog', 'frog', 'horse', 'ship', 'truck'
-]
- 
+
+class_names_cifar10 = ['airplane', 'automobile', 'bird', 'cat', 'deer','dog', 'frog', 'horse', 'ship', 'truck']
 cifar_10_classes_needed = ["automobile", "bird", "cat", "deer", "dog","horse", "truck"]
+
 # Create a dictionary mapping numerical labels to class names
 label_to_class_name = {i: class_names_cifar10[i] for i in range(len(class_names_cifar10))}
 # Apply the mapping to the training and testing labels
@@ -88,8 +86,13 @@ for i in range(cols):
  
 plt.show()
 
- 
+
+
 #Image Preprocessing
+def gaussian_blur(img):
+    img = cv2.GaussianBlur(img, (5, 5), 0)
+    return img
+
 def grayscale(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return img
@@ -99,11 +102,11 @@ def equalize(img):
     return img
 
 def preprocessing(img):
+    img = gaussian_blur(img)
     img = grayscale(img)
     img = equalize(img)
     img = img/255
     return img
-
 # Preprocess Data
 x_train = np.array(list(map(preprocessing, x_train)))
 x_test = np.array(list(map(preprocessing, x_test)))
